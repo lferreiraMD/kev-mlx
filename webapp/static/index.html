@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kev</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:           #f9f9f7;
+    --surface:        #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --hairline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+    --accent:         #2a78d6;   /* sequential blue 450 */
+    --accent-strong:  #1c5cab;
+    --track:          #cde2fb;   /* blue 100: the meter's unfilled track, same ramp */
+    --bar-muted:      #c3c2b7;   /* de-emphasis fill for non-argmax bars */
+    --good:           #006300;
+    --danger:         #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page:           #0d0d0d;
+      --surface:        #1a1a19;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --hairline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.10);
+      --accent:         #3987e5;   /* blue 400 for the dark surface */
+      --accent-strong:  #5598e7;
+      --track:          #0d366b;   /* blue 700: recessive same-ramp track on dark */
+      --bar-muted:      #383835;
+      --good:           #0ca30c;
+      --danger:         #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --text-muted: #898781; --hairline: #2c2c2a; --border: rgba(255,255,255,0.10);
+    --accent: #3987e5; --accent-strong: #5598e7; --track: #0d366b; --bar-muted: #383835;
+    --good: #0ca30c; --danger: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--text-primary);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 24px 16px 96px; }
+
+  header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  header h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  #model-chip { font-size: 12.5px; color: var(--text-secondary); }
+  #model-chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); margin-right: 5px; vertical-align: 1px; }
+  #model-chip.up .dot { background: var(--good); }
+  #model-chip.down .dot { background: var(--danger); }
+  .tagline { color: var(--text-secondary); font-size: 13.5px; margin: 0 0 18px; }
+
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .presets button {
+    font: 13px system-ui, sans-serif; color: var(--text-secondary); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer;
+  }
+  .presets button:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 14px;
+  }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .card-head .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+  .badge { font-size: 11px; color: var(--text-muted); border: 1px solid var(--hairline); border-radius: 4px; padding: 0 5px; }
+
+  textarea, input[type=text] {
+    width: 100%; background: transparent; color: var(--text-primary);
+    border: 1px solid var(--hairline); border-radius: 6px; padding: 7px 9px;
+    font: 14px/1.45 system-ui, sans-serif;
+  }
+  textarea { resize: vertical; min-height: 84px; }
+  textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  input.small { font-size: 13px; padding: 5px 8px; }
+  input.qid { width: 130px; font-weight: 600; }
+  select {
+    background: var(--surface); color: var(--text-primary); border: 1px solid var(--hairline);
+    border-radius: 6px; padding: 5px 6px; font: 13px system-ui, sans-serif;
+  }
+
+  .q-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .q-head .spacer { flex: 1; }
+  .icon-btn {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 4px 6px; border-radius: 5px;
+  }
+  .icon-btn:hover { color: var(--danger); background: var(--page); }
+  .q-body { margin-top: 10px; display: grid; gap: 8px; }
+  .crit-row { display: flex; gap: 8px; align-items: center; }
+  .crit-row .name { width: 150px; flex: none; }
+  .crit-row .desc { flex: 1; }
+  .crit-row .rank { flex: none; width: 18px; text-align: right; color: var(--text-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .add-row {
+    align-self: start; background: none; border: none; color: var(--accent); cursor: pointer;
+    font: 13px system-ui, sans-serif; padding: 2px 0;
+  }
+  .add-row:hover { text-decoration: underline; }
+  .hint { font-size: 12px; color: var(--text-muted); }
+
+  .actions { display: flex; align-items: center; gap: 14px; margin: 18px 0 22px; }
+  #run {
+    background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    font: 600 15px system-ui, sans-serif; padding: 10px 22px; cursor: pointer;
+  }
+  #run:hover { background: var(--accent-strong); }
+  #run:disabled { opacity: 0.55; cursor: default; }
+  #add-q {
+    background: var(--surface); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 8px; font: 14px system-ui, sans-serif; padding: 9px 16px; cursor: pointer;
+  }
+  #status { font-size: 13px; color: var(--text-secondary); }
+  #status.error { color: var(--danger); }
+
+  /* ------- results ------- */
+  .result { border-top: 1px solid var(--hairline); margin-top: 12px; padding-top: 10px; }
+  .verdict { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .verdict .answer { font-size: 17px; font-weight: 650; }
+  .verdict .conf { font-size: 12.5px; color: var(--text-muted); }
+  .bars { display: grid; gap: 5px; }
+  .bar-row { display: grid; grid-template-columns: minmax(90px, 170px) 1fr 52px; gap: 10px; align-items: center; }
+  .bar-row .opt { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-row.top .opt { color: var(--text-primary); font-weight: 600; }
+  .bar-row .pct { font-size: 12.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; text-align: right; }
+  .bar-row.top .pct { color: var(--text-primary); font-weight: 600; }
+  .bar-track { height: 10px; border-radius: 0 4px 4px 0; position: relative; }
+  .bar-fill { height: 100%; background: var(--bar-muted); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .bar-row.top .bar-fill { background: var(--accent); }
+  .meter { display: grid; grid-template-columns: 1fr 52px; gap: 10px; align-items: center; }
+  .meter-track { height: 10px; background: var(--track); border-radius: 4px; overflow: hidden; }
+  .meter-fill { height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
+
+  .stats { font-size: 12.5px; color: var(--text-muted); margin-top: 6px; }
+  details.io { margin-top: 20px; }
+  details.io summary { font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+  details.io pre {
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow-x: auto; color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Kev</h1>
+    <span id="model-chip"><span class="dot"></span><span id="model-text">connecting…</span></span>
+  </header>
+  <p class="tagline">Ask a small decision model typed questions about a piece of text — yes/no, multiple choice, or a rating — and get calibrated probabilities back.</p>
+
+  <div class="presets" id="presets"></div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="label">State</span>
+      <span class="badge" id="state-kind">text</span>
+      <span class="hint" style="margin-left:auto">the content the questions are about — paste JSON to send it structured</span>
+    </div>
+    <textarea id="state" spellcheck="false"></textarea>
+  </div>
+
+  <div id="questions"></div>
+
+  <div class="actions">
+    <button id="run">Run</button>
+    <button id="add-q">+ Add question</button>
+    <span class="hint" id="run-hint">⌘⏎</span>
+    <span id="status"></span>
+  </div>
+
+  <details class="io" id="io" hidden>
+    <summary>Request &amp; response JSON</summary>
+    <pre id="io-request"></pre>
+    <pre id="io-response"></pre>
+  </details>
+</main>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+
+/* ---------------- state ---------------- */
+let questions = [];   // {id, type, instructions, noul:{true,false}, choice:[[name,desc]...], score:[level...]}
+let seq = 0;
+const blank = (type = "noul") => ({
+  id: `q${++seq}`, type, instructions: "",
+  noul: { true: "", false: "" },
+  choice: [["", ""], ["", ""]],
+  score: ["", "", ""],
+});
+
+const PRESETS = {
+  "Support ticket": {
+    state: "Shoes arrived two weeks late and in the wrong size. Also I see two charges on my card.",
+    questions: [
+      { type: "choice", id: "department", instructions: "Which team should handle this?",
+        choice: [["returns", "Exchanges, refunds, wrong or damaged items"],
+                 ["shipping", "Delivery status, delays, lost packages"],
+                 ["billing", "Charges, invoices, payment problems"]] },
+      { type: "noul", id: "escalate", instructions: "Does this need urgent human attention?" },
+      { type: "score", id: "frustration", instructions: "How frustrated is the customer?",
+        score: ["Calm", "Frustrated", "Very angry"] },
+    ],
+  },
+  "Content moderation": {
+    state: "Nobody asked for your opinion. People like you are what's wrong with this forum — go back to whatever hole you crawled out of.",
+    questions: [
+      { type: "noul", id: "violation", instructions: "Does this comment violate a policy against personal attacks?" },
+      { type: "choice", id: "category", instructions: "What best describes this comment?",
+        choice: [["harassment", "Insults or attacks a person"], ["spam", "Unwanted promotion or link bait"],
+                 ["misinformation", "False or misleading claims"], ["fine", "No policy problem"]] },
+      { type: "score", id: "severity", instructions: "How severe is the violation, if any?",
+        score: ["None", "Mild", "Serious", "Ban-worthy"] },
+    ],
+  },
+  "Expense approval": {
+    state: JSON.stringify({ employee: "R. Alvarez", team: "Field Sales",
+      item: "Client dinner for 6 at Casa Toro", amount_usd: 812.4, limit_per_head_usd: 90,
+      receipt_attached: true, note: "Closed the Meridian renewal over dinner; two guests joined last minute." }, null, 2),
+    questions: [
+      { type: "noul", id: "within_policy", instructions: "Is this expense within the per-head limit?" },
+      { type: "choice", id: "action", instructions: "What should the approver do?",
+        choice: [["approve", "Pay it as filed"], ["reject", "Decline the expense"],
+                 ["escalate", "Send to a manager for an exception"]] },
+      { type: "score", id: "audit_risk", instructions: "How likely is this expense to be flagged in an audit?",
+        score: ["Unlikely", "Possible", "Likely"] },
+    ],
+  },
+  "Email triage": {
+    state: "Subject: Contract renewal — signature needed by Friday\n\nHi, legal has cleared the updated MSA. We need your countersignature before Friday or the discount lapses and pricing reverts to list. The DocuSign link is in the previous thread. Thanks!",
+    questions: [
+      { type: "choice", id: "folder", instructions: "Where should this email be filed?",
+        choice: [["action", "Needs something from me"], ["waiting", "Waiting on someone else"],
+                 ["reference", "Keep for reference, no action"], ["junk", "Unwanted"]] },
+      { type: "noul", id: "reply_today", instructions: "Does this need a reply or action today?" },
+      { type: "score", id: "priority", instructions: "How high should this sit in the queue?",
+        score: ["Low", "Normal", "High", "Drop everything"] },
+    ],
+  },
+};
+
+/* ---------------- questions editor ---------------- */
+function render() {
+  const host = $("#questions");
+  host.innerHTML = "";
+  questions.forEach((q, qi) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.qi = qi;
+
+    const head = document.createElement("div");
+    head.className = "q-head";
+    head.innerHTML = `
+      <input class="small qid" type="text" title="question id (never seen by the model)">
+      <select title="question type">
+        <option value="noul">Yes / no</option>
+        <option value="choice">Choice</option>
+        <option value="score">Score</option>
+      </select>
+      <span class="spacer"></span>
+      <button class="icon-btn" title="remove question">✕</button>`;
+    head.querySelector(".qid").value = q.id;
+    head.querySelector(".qid").oninput = e => { q.id = e.target.value; };
+    head.querySelector("select").value = q.type;
+    head.querySelector("select").onchange = e => { q.type = e.target.value; render(); };
+    head.querySelector(".icon-btn").onclick = () => { questions.splice(qi, 1); render(); };
+    card.appendChild(head);
+
+    const body = document.createElement("div");
+    body.className = "q-body";
+    const instr = document.createElement("input");
+    instr.type = "text"; instr.placeholder = "Instructions — what should the model decide?";
+    instr.value = q.instructions;
+    instr.oninput = e => { q.instructions = e.target.value; };
+    body.appendChild(instr);
+
+    if (q.type === "noul") {
+      for (const key of ["true", "false"]) {
+        const row = document.createElement("div");
+        row.className = "crit-row";
+        row.innerHTML = `<span class="rank">${key === "true" ? "yes" : "no"}</span><input class="small desc" type="text" placeholder="optional: what '${key === "true" ? "yes" : "no"}' means">`;
+        row.querySelector("input").value = q.noul[key];
+        row.querySelector("input").oninput = e => { q.noul[key] = e.target.value; };
+        body.appendChild(row);
+      }
+    } else if (q.type === "choice") {
+      q.choice.forEach((pair, ci) => {
+        const row = document.createElement("div");
+        row.className = "crit-row";
+        row.innerHTML = `<input class="small name" type="text" placeholder="option">
+                         <input class="small desc" type="text" placeholder="optional description">
+                         <button class="icon-btn" title="remove option">✕</button>`;
+        const [nameEl, descEl] = row.querySelectorAll("input");
+        nameEl.value = pair[0]; descEl.value = pair[1];
+        nameEl.oninput = e => { pair[0] = e.target.value; };
+        descEl.oninput = e => { pair[1] = e.target.value; };
+        row.querySelector("button").onclick = () => { q.choice.splice(ci, 1); render(); };
+        body.appendChild(row);
+      });
+      const add = document.createElement("button");
+      add.className = "add-row"; add.textContent = "+ option";
+      add.onclick = () => { q.choice.push(["", ""]); render(); };
+      body.appendChild(add);
+    } else {
+      q.score.forEach((lvl, li) => {
+        const row = document.createElement("div");
+        row.className = "crit-row";
+        row.innerHTML = `<span class="rank">${li}</span>
+                         <input class="small desc" type="text" placeholder="level ${li} (lowest first)">
+                         <button class="icon-btn" title="remove level">✕</button>`;
+        row.querySelector("input").value = lvl;
+        row.querySelector("input").oninput = e => { q.score[li] = e.target.value; };
+        row.querySelector("button").onclick = () => { q.score.splice(li, 1); render(); };
+        body.appendChild(row);
+      });
+      const add = document.createElement("button");
+      add.className = "add-row"; add.textContent = "+ level";
+      add.onclick = () => { q.score.push(""); render(); };
+      body.appendChild(add);
+    }
+    card.appendChild(body);
+    host.appendChild(card);
+  });
+}
+
+function loadPreset(name) {
+  const p = PRESETS[name];
+  $("#state").value = p.state;
+  questions = p.questions.map(q => ({ ...blank(q.type), ...structuredClone(q) }));
+  stateKind();
+  render();
+}
+
+function stateKind() {
+  const v = $("#state").value.trim();
+  let kind = "text";
+  try { const p = JSON.parse(v); if (p !== null && typeof p === "object") kind = "JSON"; } catch {}
+  $("#state-kind").textContent = kind;
+  return kind;
+}
+
+/* ---------------- request ---------------- */
+function buildRequest() {
+  const raw = $("#state").value;
+  let state = raw;
+  if (stateKind() === "JSON") state = JSON.parse(raw.trim());
+  const qs = {};
+  for (const q of questions) {
+    const id = q.id.trim();
+    if (!id) throw new Error("every question needs an id");
+    if (id in qs) throw new Error(`duplicate question id "${id}"`);
+    const body = { type: q.type, instructions: q.instructions.trim() || null };
+    if (q.type === "noul") {
+      const c = {};
+      if (q.noul.true.trim()) c.true = q.noul.true.trim();
+      if (q.noul.false.trim()) c.false = q.noul.false.trim();
+      if (Object.keys(c).length) body.criteria = c;
+    } else if (q.type === "choice") {
+      body.criteria = {};
+      for (const [name, desc] of q.choice) {
+        if (name.trim()) body.criteria[name.trim()] = desc.trim() || null;
+      }
+      if (!Object.keys(body.criteria).length) throw new Error(`choice question "${id}" needs at least one option`);
+    } else {
+      body.criteria = q.score.map(s => s.trim()).filter(Boolean);
+      if (!body.criteria.length) throw new Error(`score question "${id}" needs at least one level`);
+    }
+    qs[id] = body;
+  }
+  if (!Object.keys(qs).length) throw new Error("add at least one question");
+  return { state, model: "kev-latest", questions: qs };
+}
+
+async function run() {
+  const btn = $("#run"), status = $("#status");
+  document.querySelectorAll(".result").forEach(el => el.remove());
+  let req;
+  try { req = buildRequest(); }
+  catch (e) { status.className = "error"; status.textContent = e.message; return; }
+
+  btn.disabled = true; status.className = ""; status.textContent = "running…";
+  const t0 = performance.now();
+  try {
+    const res = await fetch("/v1/systemone", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(req),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail)) : `HTTP ${res.status}`);
+    const wall = performance.now() - t0;
+    showAnswers(data);
+    status.textContent = `${data.latency_ms} ms model · ${Math.round(wall)} ms total · ${data.usage.input_tokens} tokens in`;
+    $("#io").hidden = false;
+    $("#io-request").textContent = JSON.stringify(req, null, 2);
+    $("#io-response").textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    status.className = "error";
+    status.textContent = e.message === "Failed to fetch" ? "server unreachable — is webapp/server.py running?" : e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------------- results ---------------- */
+const pct = p => `${(100 * p).toFixed(p >= 0.995 || p < 0.0005 ? 0 : 1)}%`;
+
+function barRows(entries, topKey) {
+  // entries: [key, probability, label]; bars scaled to the largest so ranking reads instantly
+  const max = Math.max(...entries.map(e => e[1]), 1e-9);
+  const wrap = document.createElement("div");
+  wrap.className = "bars";
+  for (const [key, p, label] of entries) {
+    const row = document.createElement("div");
+    row.className = "bar-row" + (key === topKey ? " top" : "");
+    const name = document.createElement("span"); name.className = "opt"; name.textContent = label ?? key; name.title = label ?? key;
+    const track = document.createElement("div"); track.className = "bar-track";
+    const fill = document.createElement("div"); fill.className = "bar-fill"; fill.style.width = `${Math.max(100 * p / max, 1)}%`;
+    track.appendChild(fill);
+    const val = document.createElement("span"); val.className = "pct"; val.textContent = pct(p);
+    row.append(name, track, val);
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
+function showAnswers(data) {
+  for (const card of document.querySelectorAll("#questions .card")) {
+    const q = questions[card.dataset.qi];
+    const a = q && data.answers[q.id.trim()];
+    if (!a) continue;
+    const box = document.createElement("div");
+    box.className = "result";
+    const verdict = document.createElement("div");
+    verdict.className = "verdict";
+    box.appendChild(verdict);
+
+    if (a.type === "noul") {
+      verdict.innerHTML = `<span class="answer">${a.noul >= 0.5 ? "Yes" : "No"}</span><span class="conf">p(yes) = ${pct(a.noul)}</span>`;
+      const meter = document.createElement("div");
+      meter.className = "meter";
+      meter.innerHTML = `<div class="meter-track"><div class="meter-fill" style="width:${100 * a.noul}%"></div></div><span class="pct">${pct(a.noul)}</span>`;
+      box.appendChild(meter);
+    } else if (a.type === "choice") {
+      verdict.innerHTML = `<span class="answer">${esc(a.choice)}</span><span class="conf">confidence ${a.confidence.toFixed(2)}</span>`;
+      box.appendChild(barRows(Object.entries(a.probabilities).map(([k, p]) => [k, p]), a.choice));
+    } else {
+      const levels = Object.keys(a.probabilities);
+      const top = levels.reduce((m, k) => a.probabilities[k] > a.probabilities[m] ? k : m, levels[0]);
+      verdict.innerHTML = `<span class="answer">${a.score.toFixed(2)} / ${levels.length - 1}</span>` +
+        `<span class="conf">expected level · mode “${esc(a.legend[top])}” · confidence ${a.confidence.toFixed(2)}</span>`;
+      box.appendChild(barRows(levels.map(k => [k, a.probabilities[k], `${k} · ${a.legend[k]}`]), top));
+    }
+    card.appendChild(box);
+  }
+}
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------------- boot ---------------- */
+async function modelInfo() {
+  const chip = $("#model-chip");
+  try {
+    const res = await fetch("/v1/models");
+    const m = (await res.json()).models[0];
+    chip.classList.add("up");
+    $("#model-text").textContent = `${m.run} · ${m.backend} ${m.dtype} · T ${m.temperature.toFixed(2)}`;
+  } catch {
+    chip.classList.add("down");
+    $("#model-text").textContent = "server unreachable";
+  }
+}
+
+for (const name of Object.keys(PRESETS)) {
+  const b = document.createElement("button");
+  b.textContent = name;
+  b.onclick = () => loadPreset(name);
+  $("#presets").appendChild(b);
+}
+$("#state").addEventListener("input", stateKind);
+$("#add-q").onclick = () => { questions.push(blank()); render(); };
+$("#run").onclick = run;
+document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); run(); }
+});
+if (!navigator.platform.toLowerCase().includes("mac")) $("#run-hint").textContent = "Ctrl+⏎";
+loadPreset("Support ticket");
+modelInfo();
+</script>
+</body>
+</html>
